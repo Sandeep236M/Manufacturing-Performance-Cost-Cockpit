@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Machining plant performance simulator: line balancing, OEE loss tree, labor planning, unit cost vs standard, scrap and yield, and capacity and CAPEX payback, all live.">
+<title>Machining Plant Performance Sim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Discrete-event model · valve body machining plant · 3 lines, 7 stations each</p>
+      <h1>Machining Plant Performance Sim</h1>
+      <p class="lede">Castings flow from the raw store through turning, milling, deburr, robotic weld, leak test and pack. Operators, maintenance techs and a forklift work from live floor state. Every number on the page, from OEE to cost per unit to CAPEX payback, is computed from what happens on the floor.</p>
+    </div>
+    <div class="clock"><b id="clock">Day 1 · 06:00</b><small id="clock-s">shift 1 of 2 · 1 s on screen = 1 min on the floor at 1×</small></div>
+  </header>
+
+  <section class="controls" aria-label="Simulation controls">
+    <button class="btn primary" id="pause" type="button">Pause</button>
+    <div class="cg"><span>Speed</span><div class="seg" id="speed">
+      <button type="button" data-v="1">1×</button><button type="button" data-v="5">5×</button><button type="button" data-v="15" aria-pressed="true">15×</button><button type="button" data-v="30">30×</button><button type="button" data-v="60">60×</button></div></div>
+    <div class="cg"><span>Demand</span><div class="seg" id="demand">
+      <button type="button" data-v="2000" aria-pressed="true">2,000/day</button><button type="button" data-v="2400">2,400</button><button type="button" data-v="2800">2,800</button></div></div>
+    <div class="cg"><span>Shifts</span><div class="seg" id="shifts">
+      <button type="button" data-v="2" aria-pressed="true">2</button><button type="button" data-v="3">3</button></div></div>
+    <div class="cg"><span>Crew per line</span><div class="seg" id="crew">
+      <button type="button" data-v="3">3</button><button type="button" data-v="4" aria-pressed="true">4</button><button type="button" data-v="5">5</button></div></div>
+    <div class="cg"><span>Breakdowns</span><div class="seg" id="brk">
+      <button type="button" data-v="on" aria-pressed="true">On</button><button type="button" data-v="off">Off</button></div></div>
+    <div class="spacer"></div>
+    <button class="btn" id="restart" type="button">Restart run</button>
+  </section>
+
+  <section class="kpis" aria-label="Plant KPIs">
+    <div class="kpi"><span class="kl">Good units</span><span class="kv" id="k-good">0</span><span class="ks" id="k-good-s">plan 0</span></div>
+    <div class="kpi" id="kp-att"><span class="kl">Plan attainment</span><span class="kv" id="k-att">–</span><span class="ks">good ÷ plan</span></div>
+    <div class="kpi"><span class="kl">Run rate</span><span class="kv" id="k-rate">–</span><span class="ks" id="k-rate-s">units/day, last 2 h</span></div>
+    <div class="kpi" id="kp-oee"><span class="kl">Plant OEE</span><span class="kv" id="k-oee">–</span><span class="ks">target 85%</span></div>
+    <div class="kpi" id="kp-cost"><span class="kl">Cost / good unit</span><span class="kv" id="k-cost">–</span><span class="ks" id="k-cost-s">–</span></div>
+    <div class="kpi" id="kp-scrap"><span class="kl">Scrap rate</span><span class="kv" id="k-scrap">–</span><span class="ks">target ≤ 2.0%</span></div>
+    <div class="kpi"><span class="kl">First pass yield</span><span class="kv" id="k-fpy">–</span><span class="ks">first inspection</span></div>
+    <div class="kpi" id="kp-lab"><span class="kl">Labor efficiency</span><span class="kv" id="k-lab">–</span><span class="ks" id="k-lab-s">earned ÷ paid hours</span></div>
+    <div class="kpi"><span class="kl">WIP</span><span class="kv" id="k-wip">0</span><span class="ks" id="k-wip-s">units on the floor</span></div>
+    <div class="kpi" id="kp-con"><span class="kl">Constraint</span><span class="kv" id="k-con">–</span><span class="ks" id="k-con-s">–</span></div>
+  </section>
+
+  <section class="main">
+    <div class="card floor-card" id="card-floor">
+      <div class="tour" id="tour">
+        <span class="n" id="t-n">Tour · 7 steps</span>
+        <div><h3 id="t-h">From the floor to the P&amp;L</h3><p id="t-p">Follow one story from an executive cost variance down to a single machine, then test the fixes and see which ones pay back.</p></div>
+        <div class="tb"><button class="btn" id="t-prev" type="button" hidden>Previous</button><button class="btn primary" id="t-next" type="button">Start tour</button><button class="btn" id="t-close" type="button" hidden>End tour</button></div>
+      </div>
+      <div class="floor-wrap"><canvas id="floor" aria-label="Animated plant floor plan"></canvas></div>
+      <div class="legend" id="legend"></div>
+      <div class="hover" id="hover">Hover a station or person for detail. Click to inspect.</div>
+    </div>
+
+    <aside class="side">
+      <div class="card" id="card-balance">
+        <div class="chead"><h2>Line balance</h2><div class="seg sm" id="balLine"></div></div>
+        <div id="balance"></div>
+      </div>
+      <div class="card">
+        <div class="chead"><h2>Inspector</h2></div>
+        <div class="insp" id="insp"></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="grid3">
+    <div class="card" id="card-oee">
+      <div class="chead"><h2>OEE and loss tree</h2><span class="sub">measured at each line's constraint</span></div>
+      <div id="oee"></div>
+    </div>
+    <div class="card" id="card-cost">
+      <div class="chead"><h2>Unit cost vs. standard</h2><span class="sub" id="cost-sub">$ per good unit</span></div>
+      <div id="cost"></div>
+    </div>
+    <div class="card" id="card-cap">
+      <div class="chead"><h2>Capacity, labor and CAPEX</h2><span class="sub">analytical model at current plan</span></div>
+      <div id="cap"></div>
+    </div>
+  </section>
+
+  <section class="card" id="card-log">
+    <div class="chead lhead"><h2>Event log</h2>
+      <select id="lfilter" aria-label="Filter events">
+        <option value="all">All events</option><option value="prod">Production &amp; changeovers</option><option value="mnt">Andon &amp; maintenance</option><option value="qual">Quality, scrap &amp; rework</option><option value="mat">Material</option><option value="labor">Labor</option><option value="capex">Projects &amp; scenarios</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="lonly"> Selected only</label>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <p class="foot">All figures are illustrative planning assumptions, not measured data. Edit them at the top of <code>app.js</code>.</p>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
