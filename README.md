@@ -1,5 +1,7 @@
 # Machining Plant Performance Sim
 
+**Live:** https://sandeep236m.github.io/Manufacturing-Performance-Cost-Cockpit/
+
 A browser-based discrete-event simulation of a valve body machining plant: three lines of seven stations each, with operators, maintenance techs, a forklift and a rework bench working from live floor state. It connects what happens on the floor to the numbers an industrial engineer is accountable for:
 
 - Capacity planning against takt, with an analytical capacity model beside the simulation
@@ -33,16 +35,16 @@ python3 -m http.server 8000
 
 ## Publish on GitHub Pages
 
-1. Create a public repository, e.g. `machining-plant-sim`.
+1. Create a public repository, e.g. `Manufacturing-Performance-Cost-Cockpit`.
 2. Upload these files, or push with git:
    ```bash
    git init && git add . && git commit -m "Machining Plant Performance Sim"
    git branch -M main
-   git remote add origin https://github.com/<your-username>/machining-plant-sim.git
+   git remote add origin https://github.com/<your-username>/Manufacturing-Performance-Cost-Cockpit.git
    git push -u origin main
    ```
 3. Go to **Settings → Pages**. Set the source to **Deploy from a branch**, the branch to **main**, and the folder to **/ (root)**.
-4. The site will be live at `https://<your-username>.github.io/machining-plant-sim/`.
+4. The site will be live at `https://<your-username>.github.io/Manufacturing-Performance-Cost-Cockpit/`.
 
 ## Controls
 
@@ -71,6 +73,8 @@ python3 -m http.server 8000
 **Quality.** Defects are created at CNC-1, CNC-2 (dimensional) and weld (porosity) and found at inspection. Dimensional defects are scrapped 70% of the time, porosity 40%; the rest go to the rework bench (12 min) and are packed.
 
 ## KPIs
+
+Hover, focus or tap any KPI tile to see its definition, formula and target, with the current numbers worked through.
 
 | KPI | Definition |
 |---|---|

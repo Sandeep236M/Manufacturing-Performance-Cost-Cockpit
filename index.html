@@ -38,17 +38,18 @@
   </section>
 
   <section class="kpis" aria-label="Plant KPIs">
-    <div class="kpi"><span class="kl">Good units</span><span class="kv" id="k-good">0</span><span class="ks" id="k-good-s">plan 0</span></div>
-    <div class="kpi" id="kp-att"><span class="kl">Plan attainment</span><span class="kv" id="k-att">–</span><span class="ks">good ÷ plan</span></div>
-    <div class="kpi"><span class="kl">Run rate</span><span class="kv" id="k-rate">–</span><span class="ks" id="k-rate-s">units/day, last 2 h</span></div>
-    <div class="kpi" id="kp-oee"><span class="kl">Plant OEE</span><span class="kv" id="k-oee">–</span><span class="ks">target 85%</span></div>
-    <div class="kpi" id="kp-cost"><span class="kl">Cost / good unit</span><span class="kv" id="k-cost">–</span><span class="ks" id="k-cost-s">–</span></div>
-    <div class="kpi" id="kp-scrap"><span class="kl">Scrap rate</span><span class="kv" id="k-scrap">–</span><span class="ks">target ≤ 2.0%</span></div>
-    <div class="kpi"><span class="kl">First pass yield</span><span class="kv" id="k-fpy">–</span><span class="ks">first inspection</span></div>
-    <div class="kpi" id="kp-lab"><span class="kl">Labor efficiency</span><span class="kv" id="k-lab">–</span><span class="ks" id="k-lab-s">earned ÷ paid hours</span></div>
-    <div class="kpi"><span class="kl">WIP</span><span class="kv" id="k-wip">0</span><span class="ks" id="k-wip-s">units on the floor</span></div>
-    <div class="kpi" id="kp-con"><span class="kl">Constraint</span><span class="kv" id="k-con">–</span><span class="ks" id="k-con-s">–</span></div>
+    <div class="kpi" data-kpi="good" tabindex="0"><span class="kl">Good units</span><span class="kv" id="k-good">0</span><span class="ks" id="k-good-s">plan 0</span></div>
+    <div class="kpi" data-kpi="att" tabindex="0" id="kp-att"><span class="kl">Plan attainment</span><span class="kv" id="k-att">–</span><span class="ks">good ÷ plan</span></div>
+    <div class="kpi" data-kpi="rate" tabindex="0"><span class="kl">Run rate</span><span class="kv" id="k-rate">–</span><span class="ks" id="k-rate-s">units/day, last 2 h</span></div>
+    <div class="kpi" data-kpi="oee" tabindex="0" id="kp-oee"><span class="kl">Plant OEE</span><span class="kv" id="k-oee">–</span><span class="ks">target 85%</span></div>
+    <div class="kpi" data-kpi="cost" tabindex="0" id="kp-cost"><span class="kl">Cost / good unit</span><span class="kv" id="k-cost">–</span><span class="ks" id="k-cost-s">–</span></div>
+    <div class="kpi" data-kpi="scrap" tabindex="0" id="kp-scrap"><span class="kl">Scrap rate</span><span class="kv" id="k-scrap">–</span><span class="ks">target ≤ 2.0%</span></div>
+    <div class="kpi" data-kpi="fpy" tabindex="0"><span class="kl">First pass yield</span><span class="kv" id="k-fpy">–</span><span class="ks">first inspection</span></div>
+    <div class="kpi" data-kpi="lab" tabindex="0" id="kp-lab"><span class="kl">Labor efficiency</span><span class="kv" id="k-lab">–</span><span class="ks" id="k-lab-s">earned ÷ paid hours</span></div>
+    <div class="kpi" data-kpi="wip" tabindex="0"><span class="kl">WIP</span><span class="kv" id="k-wip">0</span><span class="ks" id="k-wip-s">units on the floor</span></div>
+    <div class="kpi" data-kpi="con" tabindex="0" id="kp-con"><span class="kl">Constraint</span><span class="kv" id="k-con">–</span><span class="ks" id="k-con-s">–</span></div>
   </section>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
 
   <section class="main">
     <div class="card floor-card" id="card-floor">

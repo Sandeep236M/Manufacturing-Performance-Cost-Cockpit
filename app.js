@@ -419,6 +419,44 @@ function updKPI(){const c=clockTxt(S.now);$('#clock').textContent=`Day ${c.day} 
   kpi('#k-lab',pct(le,0),`${isFinite(uplh)?uplh.toFixed(1):'–'} units / labor hr`,isFinite(le)?(le<0.9?'bad':'good'):'','#k-lab-s');
   const w=wip(),thr=S.now-h0.t>=20?(g-h0.g)/(S.now-h0.t):NaN;kpi('#k-wip',n0(w),isFinite(thr)&&thr>0?`${Math.round(w/thr)} min flow time`:'units on the floor',undefined,'#k-wip-s');
   const k=constraint();if(k){const t=taktSec();kpi('#k-con',`L${k.i+1} ${k.c.bn.short||''}`,`${k.c.bn.ct} s vs ${t.toFixed(0)} s takt`,k.c.bn.ct>t?'bad':'','#k-con-s');}}
+/* ---------- KPI definitions (hover, focus or tap a KPI tile) ---------- */
+const KPI_INFO={
+  good:{t:'Good units',d:'Units packed to finished goods that meet spec, including units that passed after rework.',f:'Good units = packed first-pass units + reworked units packed',tg:'Compare with plan to date: daily demand × share of the planned day elapsed.',
+    lv:()=>`${n0(S.c.good)} good = ${n0(S.c.good-S.c.rework)} first pass + ${n0(S.c.rework)} reworked\nPlan to date ${n0(U.demand*S.now/dayLen())}`},
+  att:{t:'Plan attainment',d:'How much of the production plan the plant has delivered so far in the run.',f:'Attainment = good units ÷ plan to date\nPlan to date = daily demand × elapsed planned min ÷ planned min per day',tg:'Target ≥ 97%. Below that the tile turns orange.',
+    lv:()=>{const pl=U.demand*S.now/dayLen();return`${n0(S.c.good)} ÷ ${n0(pl)} = ${pct(pl>5?S.c.good/pl:NaN)}\nPlan to date = ${n0(U.demand)} × ${n0(S.now)} ÷ ${n0(dayLen())}`;}},
+  rate:{t:'Run rate',d:'The plant\'s current pace, scaled to a full day. Shows whether output is recovering or slipping faster than cumulative numbers can.',f:'Run rate = good units in the last 2 h ÷ minutes in window × planned min per day',tg:'Compare with daily demand.',
+    lv:()=>{const h0=S.hist[0],m=S.now-h0.t,dg=S.c.good-h0.g;return m>=20?`${n0(dg)} ÷ ${n0(m)} min × ${n0(dayLen())} = ${n0(dg/m*dayLen())}/day`:'Needs 20 planned minutes of history.';}},
+  oee:{t:'Plant OEE',d:'Overall Equipment Effectiveness: the share of planned time that produced good parts at the ideal rate, measured at each line\'s constraint.',f:'OEE = Σ(good units × ideal cycle) ÷ Σ planned time\n    = Availability × Performance × Quality\nA = run time ÷ planned time\nP = OEE ÷ (A × Q)\nQ = good ÷ (good + scrap)',tg:'Target 85% (world class). Orange below 75%.',
+    lv:()=>{let n=0,d=0;for(const L of S.lines){n+=L.good*L.stations[L.bn].p.ct/60;d+=L.elapsed;}return`${n0(n)} min at ideal rate ÷ ${n0(d)} planned line-min = ${pct(d?n/d:NaN)}`;}},
+  cost:{t:'Cost per good unit',d:'Full manufacturing cost (COGS) carried by each good unit, compared with the standard cost at the full plan.',f:'Cost/unit = (material + direct labor + variable OH + fixed OH) ÷ good units\nMaterial = castings started × $'+COST.mat.toFixed(2)+'\nDirect labor = paid operator + rework hours × $'+COST.dl+'/h\nVariable OH = CNC hrs × $'+COST.cnc+' + weld hrs × $'+COST.weld+' + tool changes × $'+COST.tool+'\nFixed OH = fixed cost per day × days elapsed',tg:'Standard assumes 4 operators per line, 2% scrap, the full daily plan.',
+    lv:()=>{const{per,std}=costs();return`$${per.mat.toFixed(2)} + $${per.dl.toFixed(2)} + $${per.var.toFixed(2)} + $${per.fix.toFixed(2)} = ${usd(per.tot)}\nStandard ${usd(std.tot)} · variance ${isFinite(per.tot)?(per.tot>=std.tot?'+':'−')+usd(Math.abs(per.tot-std.tot)):'–'}`;}},
+  scrap:{t:'Scrap rate',d:'Share of finished output lost to scrap at inspection. Defects that can be reworked are not counted here.',f:'Scrap rate = scrapped units ÷ (good units + scrapped units)',tg:'Target ≤ 2.0%.',
+    lv:()=>{const a=S.c.scrap,b=S.c.good+S.c.scrap;return`${n0(a)} ÷ ${n0(b)} = ${pct(b?a/b:NaN)}\nDimensional ${n0(S.c.defects.dim)} · weld porosity ${n0(S.c.defects.por)}`;}},
+  fpy:{t:'First pass yield',d:'Share of units that pass leak test and inspection the first time, with no scrap or rework.',f:'FPY = passed on first inspection ÷ units inspected\nRolled throughput yield would multiply FPY across every step.',tg:'Higher is better. Every miss costs rework time or scrap material.',
+    lv:()=>`${n0(S.c.pass1)} ÷ ${n0(S.c.insp1)} = ${pct(S.c.insp1?S.c.pass1/S.c.insp1:NaN)}`},
+  lab:{t:'Labor efficiency',d:'Standard hours earned by good output compared with operator hours paid. Units per labor hour includes indirect labor.',f:'Labor efficiency = earned hours ÷ paid operator hours\nEarned = good × std crew '+COST.stdCrew+' × (std cycle '+COST.stdCT+' s ÷ target OEE '+pct(COST.targetOEE,0)+') ÷ 3600\nUnits / labor hr = good ÷ (direct + indirect hours)',tg:'Target ≥ 90%.',
+    lv:()=>{const paid=S.c.opMin/60,earned=S.c.good*COST.stdCrew*(COST.stdCT/COST.targetOEE)/3600;return`${earned.toFixed(1)} earned h ÷ ${paid.toFixed(1)} paid h = ${pct(paid?earned/paid:NaN,0)}`;}},
+  wip:{t:'WIP and flow time',d:'Units on the floor: in stations, on conveyors and at the rework bench. Flow time is how long a unit takes to get through.',f:'Flow time = WIP ÷ throughput (Little\'s Law)\nThroughput = good units per min over the last 2 h',tg:'Lower WIP at the same output means shorter lead time and less exposure to defects.',
+    lv:()=>{const h0=S.hist[0],m=S.now-h0.t,th=m>=20?(S.c.good-h0.g)/m:NaN,w=wip();return isFinite(th)&&th>0?`${n0(w)} units ÷ ${th.toFixed(2)} units/min = ${Math.round(w/th)} min`:`${n0(w)} units on the floor`;}},
+  con:{t:'Constraint',d:'The line with the least capacity relative to its share of demand, and the slowest station on it. The constraint sets the pace for the whole plant.',f:'Takt = planned sec per day ÷ (demand ÷ lines)\nLine capacity = run time ÷ constraint cycle × availability × 95% × (1 − scrap)\nConstraint = line with the lowest capacity ÷ demand share',tg:'A constraint cycle above takt means the line cannot make its share even at 100% OEE.',
+    lv:()=>{const k=constraint();if(!k)return'';const sh=U.demand/nLines();return`L${k.i+1}: capacity ${n0(k.c.cap)}/day vs share ${n0(sh)} → load ${pct(sh/k.c.cap,0)}\n${k.c.bn.short} ${k.c.bn.ct} s vs takt ${taktSec().toFixed(0)} s`;}}};
+const tipEl=$('#tip');let tipFor=null;
+function tipHTML(k){const i=KPI_INFO[k];return`<h5>${esc(i.t)}</h5><p>${esc(i.d)}</p><div class="f">${esc(i.f)}</div><div class="lv"><b>Now:</b> ${esc(i.lv())}</div><p class="tg">${esc(i.tg)}</p>`;}
+function placeTip(el){const r=el.getBoundingClientRect(),tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
+  let x=clamp(r.left+r.width/2-tw/2,12,window.innerWidth-tw-12),y=r.bottom+8;if(y+th>window.innerHeight-8)y=Math.max(8,r.top-th-8);
+  tipEl.style.left=x+'px';tipEl.style.top=y+'px';}
+function showTip(el){tipFor=el;document.querySelectorAll('.kpi.open').forEach(k=>k.classList.remove('open'));el.classList.add('open');
+  tipEl.innerHTML=tipHTML(el.dataset.kpi);tipEl.hidden=false;el.setAttribute('aria-describedby','tip');placeTip(el);}
+function hideTip(){if(tipFor){tipFor.classList.remove('open');tipFor.removeAttribute('aria-describedby');}tipFor=null;tipEl.hidden=true;}
+function refreshTip(){if(tipFor){tipEl.innerHTML=tipHTML(tipFor.dataset.kpi);placeTip(tipFor);}}
+document.querySelectorAll('.kpi[data-kpi]').forEach(el=>{
+  el.addEventListener('mouseenter',()=>showTip(el));el.addEventListener('mouseleave',()=>{if(document.activeElement!==el)hideTip();});
+  el.addEventListener('focus',()=>showTip(el));el.addEventListener('blur',hideTip);
+  el.addEventListener('click',e=>{e.stopPropagation();tipFor===el&&!tipEl.hidden&&e.pointerType!=='mouse'?hideTip():showTip(el);});});
+document.addEventListener('click',()=>hideTip());
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip();});
+window.addEventListener('scroll',()=>{if(tipFor)placeTip(tipFor);},{passive:true});
 function renderAll(){updKPI();renderBalance();renderInsp();renderOEE();renderCost();renderCap();}
 
 /* ---------- controls ---------- */
@@ -466,7 +504,7 @@ $('#t-close').addEventListener('click',()=>{U.tour=-1;renderTour();});
 let last=performance.now(),acc=0,panelT=0;
 function frame(ms){const real=Math.min(0.1,(ms-last)/1000);last=ms;
   if(!U.paused){acc+=real*U.speed;const h=1/60;let n=0;while(acc>=h&&n<4000){tick(h);acc-=h;n++;}if(n>=4000)acc=0;}
-  panelT+=real;if(panelT>0.3){panelT=0;updKPI();renderBalance();renderOEE();renderCost();if(U.sel)renderInsp();}
+  panelT+=real;if(panelT>0.3){panelT=0;updKPI();refreshTip();renderBalance();renderOEE();renderCost();if(U.sel)renderInsp();}
   draw();requestAnimationFrame(frame);}
 const mq=matchMedia('(prefers-color-scheme: dark)');mq.addEventListener&&mq.addEventListener('change',readColors);
 window.addEventListener('resize',resize);
