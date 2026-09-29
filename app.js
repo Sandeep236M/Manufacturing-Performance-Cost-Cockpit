@@ -60,7 +60,7 @@ const ROOMS=[[22,50,34,62,'Maint. crib'],[34,50,44,62,'Tool crib'],[44,50,56,62,
 const BENCH={x:64,y:56.5};
 
 /* ---------- state ---------- */
-const U={speed:15,demand:2000,shifts:2,crew:4,brk:true,paused:false,proj:{pm:false,smed:false,tool:false,cnc:false,line4:false},
+const U={speed:1,demand:2000,shifts:2,crew:4,brk:true,paused:false,proj:{pm:false,smed:false,tool:false,cnc:false,line4:false},
   balLine:2,filter:'all',only:false,sel:null,tour:-1};
 let S;
 
@@ -509,6 +509,5 @@ function frame(ms){const real=Math.min(0.1,(ms-last)/1000);last=ms;
 const mq=matchMedia('(prefers-color-scheme: dark)');mq.addEventListener&&mq.addEventListener('change',readColors);
 window.addEventListener('resize',resize);
 readColors();resize();legend();init();renderTour();
-if(reduce)U.speed=5;
 requestAnimationFrame(frame);
 })();
